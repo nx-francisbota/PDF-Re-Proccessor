@@ -1,6 +1,5 @@
-const { Client } = require("basic-ftp")
-const pino = require('pino');
-const logger = pino({});
+const { Client } = require("basic-ftp");
+const { Logger } = require('../helpers/logger');
 require('dotenv').config();
 
 connect().then((data) => console.log(data)).catch((e) => console.error(e));
@@ -15,15 +14,15 @@ async function connect() {
             password: process.env.FTP_PASSWORD,
             secure: false,
         })
-        if (ftpResponse >= 300) {
-            logger.error("Failed to connect to FTP Server...Closing connection");
-            client.close()
-            return
-        }
+        Logger.info(ftpResponse.message);
         return client;
     }
     catch(err) {
-        logger.error(err)
+        Logger.error(err)
         throw err;
     }
 }
+
+module.exports.FTPClient = {
+    connect: connect()
+};
