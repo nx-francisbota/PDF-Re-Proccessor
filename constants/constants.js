@@ -18,6 +18,16 @@ const pdfConstants = {
         width: 335,
         height: 194,
     },
+    order: {
+        width: 65,
+        height: 13,
+        centre: 10
+    },
+    print: {
+        width: 55,
+        height: 13,
+        centre: 10
+    },
     barcodeWidth: 100,
     libToMMFactor: 1.2346561,
     barcodeHeight: 50,
@@ -28,15 +38,6 @@ const pdfConstants = {
     fontSize: 40,
     defaultText: 'Merci',
 }
-
-const mmToLibUnit = (mmUnit) => {
-    //1lib-unit = 1/72 inch
-    //1mm = 0.0393701inches
-    //1lib-unit = 0.35278mm
-    //2.8352lib-units = 1mm
-    return mmUnit * 2.8352;
-}
-
 
 module.exports = {
     pdfConstants,
