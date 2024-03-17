@@ -1,3 +1,4 @@
+const dotenv = require('dotenv');
 const pino = require('pino');
 
 const fileTransport = pino.transport({
@@ -8,7 +9,7 @@ const fileTransport = pino.transport({
 });
 
 module.exports = pino({
-    level: process.env.PINO_LOG_LEVEL || 'info',
+    level: dotenv.PINO_LOG_LEVEL || 'info',
     formatters: {
         level: (label) => {
             return { level: label.toUpperCase() };
