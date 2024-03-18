@@ -2,9 +2,9 @@ const {Client} = require("basic-ftp")
 const fs = require('fs');
 
 
-const host = '127.0.0.1';
-const user = 'kofi';
-const password = 'master';
+const host = process.env.FTP_HOST;
+const user = process.env.FTP_USER;
+const password = process.env.FTP_PASSWORD;
 const remoteDir = '/';
 
 const pathToScanTimeFile =   '/../public/pdff/LASTSCANN';
