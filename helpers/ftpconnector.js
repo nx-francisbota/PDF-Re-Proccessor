@@ -1,18 +1,19 @@
 const {Client} = require("basic-ftp")
 const fs = require('fs');
 
+
 const host = '127.0.0.1';
 const user = 'kofi';
 const password = 'master';
 const remoteDir = '/';
 
-const pathToScanTimeFile = __dirname + '/../public/pdff/LASTSCANN';
+const pathToScanTimeFile =   '/../public/pdff/LASTSCANN';
 
 //create file if not there
 
 if (!checkFileExists(pathToScanTimeFile)) {
+    createFile(__dirname + pathToScanTimeFile, '')
     console.log("file Not there")
-    // createFile(pathToScanTimeFile, '')
 }
 
 
@@ -22,8 +23,9 @@ exports.index = function () {
 
 exports.scanDir = async function () {
     const client = new Client();
-    let lastScanTime = await readFile(pathToScanTimeFile);
+    let lastScanTime = await readFile(__dirname + pathToScanTimeFile);
 
+    console.log("lastScanTime", lastScanTime)
     try {
         await client.access({
             host, user: user, password,
@@ -44,15 +46,8 @@ exports.scanDir = async function () {
         });
 
         if (newlyAdded.length > 0) {
-            console.log('New PDFs found:');
+            console.log(`${newlyAdded.length} New PDFs found:`);
             for (const file of newlyAdded) {
-                console.log(file.name);
-
-                // //download the file and get the temp path
-                // await client.downloadTo(__dirname + '/../public/' + file.name, file.name)
-                //
-                // //download its json
-                // await client.downloadTo(__dirname + '/../public/' + getPdfJson(file.name) , getPdfJson(file.name))
 
                 await downloadFileAndJson(file, client)
 
@@ -82,7 +77,7 @@ exports.scanDir = async function () {
         }
 
         // Update last scan time for future comparisons
-        createFile(pathToScanTimeFile, scannedDate)
+        await createFile(__dirname + pathToScanTimeFile, scannedDate.toString())
     } catch (error) {
         console.error('Error:', error);
     } finally {
@@ -97,13 +92,18 @@ function getPdfJson(fileName) {
 }
 
 function createFile(fileName, content) {
-    fs.writeFile(fileName, content, (err) => {
-        if (err) {
-            console.error('Error creating file:', err);
-        } else {
-            console.log(`File "${fileName}" created successfully!`);
-        }
-    });
+    try {
+        fs.writeFile(fileName, content, (err) => {
+            if (err) {
+                throw err; // Re-throw the error for handling in the catch block
+            } else {
+                console.log(`File "${fileName}" created successfully!`);
+            }
+        });
+    } catch (error) {
+        console.error('Error creating file:', error);
+        // Handle other errors here (e.g., logging to a file, notifying the user)
+    }
 }
 
 async function deleteFile(fileName) {
@@ -169,10 +169,12 @@ async function readFile(filePath) {
 async function checkFileExists(filePath) {
     try {
         await fs.access(filePath, function () {
+            console.log("Files Createedd")
             return true;
         }); // Check file existence
 
     } catch (error) {
+        console.log("Files NOoooooooooooo")
         return false; // File not found or other error
     }
 }
