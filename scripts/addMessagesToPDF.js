@@ -52,11 +52,10 @@ const replaceTextContent = async (newTxt, file, size) => {
     const y = pdfConstants[size].y;
     let offsetX = (pdfWidth - textWidth) / 2;
     let svgHeartOffset;
-    let widthOfI;
+    let widthOfI = arcaneFont.widthOfTextAtSize("i", fontSize);
 
     const charactersUntilLastI = splitToLastI(newTxt);
     if (charactersUntilLastI.length !== 0) {
-        widthOfI = arcaneFont.widthOfTextAtSize("i", fontSize);
         const sizeArr = charactersUntilLastI.map(t => arcaneFont.widthOfTextAtSize(t, fontSize));
         const heartWidthOffset = sizeArr.reduce((x, y) => {
             return x + y
@@ -75,30 +74,21 @@ const replaceTextContent = async (newTxt, file, size) => {
         font: arcaneFont,
     })
 
-    //Draw Options for SVG for text not ending with i
-    const svgDrawOptions1 = {
-        x: svgHeartOffset,
-        y: y + (textHeight/2) - 6,
-        width: 20,
-        height: 20,
-    };
-
     //Draw options for SVG for text ending with i
-    const svgDrawOptions2 = {
+    const svgDrawOptions = {
         x: svgHeartOffset,
-        y: y + (textHeight/2) - 4,
+        y: y + (textHeight/2) - 5,
         color: rgb(1,1,1),
         width: widthOfI,
         height: widthOfI,
     }
 
     if (textInformation.count > 0) {
-        pdfPage.drawRectangle(svgDrawOptions2)
-        pdfPage.drawPage(svg, svgDrawOptions2)
+        pdfPage.drawRectangle(svgDrawOptions)
+        pdfPage.drawPage(svg, svgDrawOptions)
     } else {
-        pdfPage.drawPage(svg, svgDrawOptions1);
+        pdfPage.drawPage(svg, svgDrawOptions);
     }
-
 
     await generatePdfWithBarcode({productNumber: "99K40001", orderNumber: "SO_233465"}, pdfDoc);
 
