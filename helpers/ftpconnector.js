@@ -1,5 +1,6 @@
 const {Client} = require("basic-ftp")
 const fs = require('fs');
+const { replaceTextContent } = require('../scripts/addMessagesToPDF');
 
 
 const host = process.env.FTP_HOST;
@@ -58,13 +59,16 @@ exports.scanDir = async function () {
                 //log content
                 console.log(json['size'])
 
+                //load file content in object
+                const jsonData = getJsonInfo(json);
+
                 //create the Current file and save the filename in it
                 createFile(__dirname + '/../public/pdff/CURRENT', file.name)
 
 
                 //perform action on temp file
                 const currentFilePath = __dirname + '/../public/' + file.name;
-                //TODO: do your pdf action here
+
 
                 //delete current file
                 await deleteFile(__dirname + '/../public/CURRENT');
@@ -169,12 +173,41 @@ async function readFile(filePath) {
 async function checkFileExists(filePath) {
     try {
         await fs.access(filePath, function () {
-            console.log("Files Createedd")
+            console.log("Files Createdd")
             return true;
         }); // Check file existence
 
     } catch (error) {
-        console.log("Files NOoooooooooooo")
+        console.log("Files Not Found")
         return false; // File not found or other error
     }
+}
+
+
+/**
+ * @param jsonObject string
+ */
+const getJsonInfo = (jsonObject) => {
+    const integrationData = {};
+    if (!jsonObject) {
+        console.error("Invalid or null json file read");
+        return;
+    }
+    if (jsonObject.titleText) {
+        integrationData.titleText = jsonObject.titleText;
+    }
+    integrationData.size = jsonObject.size;
+    if (jsonObject.productNumber) {
+        integrationData.productNumber = jsonObject.productNumber;
+    }
+    if (jsonObject.orderNumber) {
+        integrationData.orderNumber = jsonObject.orderNumber;
+    }
+    if (jsonObject.quantity) {
+        integrationData.quantity = jsonObject.quantity;
+    }
+    if (jsonObject.printId) {
+        integrationData.guid = jsonObject.printId;
+    }
+    return integrationData;
 }
