@@ -28,9 +28,8 @@ const pdfConstants = {
         height: 13,
         centre: 10
     },
-    barcodeWidth: 100,
-    libToMMFactor: 1.2346561,
-    barcodeHeight: 50,
+    barcodeWidth: 184.2,
+    barcodeHeight: 75.2,
     barcodeX: 100,
     barcodeY: 150,
     width: 700,
