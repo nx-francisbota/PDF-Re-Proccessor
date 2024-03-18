@@ -15,24 +15,27 @@ async function generatePdfWithBarcode(data, pdfDoc) {
     const barcodeProdData = await generateBarcodeSVGBuffer(data.productNumber);
     const barcodeOrderData = await generateBarcodeSVGBuffer(data.orderNumber);
 
-    const page = pdfDoc.addPage();
+    const page = pdfDoc.addPage([940, 544]);
+
+    //set 6mm bleed
+    page.setBleedBox(0, 0, 18, 18)
 
     const barcodeImageProd = await pdfDoc.embedPng(barcodeProdData);
     const barcodeImageOrder = await pdfDoc.embedPng(barcodeOrderData);
 
     //draw product number barcode
     page.drawImage(barcodeImageProd, {
-        width: pdfConstants.print.width,
-        height: pdfConstants.print.height,
+        width: pdfConstants.barcodeWidth,
+        height: pdfConstants.barcodeHeight,
         x: pdfConstants.barcodeX,
-        y: pdfConstants.barcodeY,
+        y: 544 / 2,
     });
 
     page.drawImage(barcodeImageOrder, {
         width: pdfConstants.barcodeWidth,
         height: pdfConstants.barcodeHeight,
         x: pdfConstants.barcodeX,
-        y: pdfConstants.barcodeY - 80,
+        y: 544 / 4,
     });
 
     await pdfDoc.save();
