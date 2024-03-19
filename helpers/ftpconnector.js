@@ -1,5 +1,6 @@
 const { Client } = require("basic-ftp")
 const fs = require('fs');
+const path = require('path');
 const {logger} = require('../utils/logger');
 const { replaceTextContent } = require('../scripts/addMessagesToPDF');
 require('dotenv').config({
@@ -11,20 +12,15 @@ const user = process.env.FTP_USER;
 const password = process.env.FTP_PASSWORD;
 const remoteDir = process.env.REMOTE_DIRECTORY
 const pathToArchiveDir = '/archive'
-const pathToScanTimeFile = '/../public/pdff/LASTSCAN';
+const pathToScanTimeFile = '/../public/pdf/LASTSCAN';
 const pathToLocalDir = '/../public/pdf/';
 const pathToCurrentFile = '/../public/pdf/CURRENT';
 
 
-exports.scanDir = async function () {
+const scanDir = async function () {
     const client = new Client();
 
-    if (!await checkFileExists(pathToScanTimeFile)) {
-         logger.info(`File Not there - ${pathToArchiveDir}`)
-        createFile(__dirname + pathToScanTimeFile, '')
-    }
-
-    let lastScanTime = await readOrCreateFile(__dirname + pathToScanTimeFile);
+    let lastScanTime = await readOrCreateFile(__dirname + pathToScanTimeFile)
 
     logger.info(`Last scan time: ${lastScanTime}`)
     try {
@@ -33,8 +29,6 @@ exports.scanDir = async function () {
         });
 
         logger.info('Connected to FTP server');
-        await client.ensureDir(pathToArchiveDir)
-
 
         const scannedDate = new Date();
         const files = await client.list(remoteDir);
@@ -45,7 +39,7 @@ exports.scanDir = async function () {
         // Identify new PDFs by comparing modification times with last scan
         const newlyAdded = pdfFiles.filter((file) => {
             const fileModifiedTime = new Date(file.modifiedAt);
-            return !lastScanTime || fileModifiedTime > lastScanTime;
+            return lastScanTime === "" || fileModifiedTime > lastScanTime;
         });
 
         if (newlyAdded.length > 0) {
@@ -66,19 +60,31 @@ exports.scanDir = async function () {
                 const jsonData = getJsonInfo(json);
 
                 //create the Current file and save the filename in it
-
                 createFile(__dirname + pathToCurrentFile, file.name)
 
 
                 //perform action on temp file
                 const currentFilePath = __dirname + pathToLocalDir + file.name;
+                const fixedFiles = await replaceTextContent(jsonData, currentFilePath)
 
+                if (!fixedFiles) {
+                    continue;
+                }
+
+                if (fixedFiles.length > 0) {
+                    await client.ensureDir('/output');
+                    for (const filePath of fixedFiles) {
+                        const filename = path.basename(filePath);
+                        console.log(`Uploading file at ${filePath}`);
+
+                        await client.uploadFrom(filePath, filename);
+                    }
+                    await client.cd('../');
+                    fixedFiles.map((file) => deleteFile(file));
+                }
 
                 //delete current file
                 await deleteFile(__dirname + '/../public/CURRENT');
-
-                //upload to archive folder on ftp and delete
-                await uploadFiles(file, client, '/archive')
 
                 //remove pdf and json files from local
                 await deleteFile(__dirname + '/../public/pdf/' + file.name);
@@ -87,7 +93,6 @@ exports.scanDir = async function () {
         } else {
              logger.info('No new PDFs found.');
         }
-
         // Update last scan time for future comparisons
         await createFile(__dirname + pathToScanTimeFile, scannedDate.toString())
     } catch (error) {
@@ -107,7 +112,7 @@ function createFile(fileName, content) {
     try {
         fs.writeFile(fileName, content, (err) => {
             if (err) {
-                throw err; // Re-throw the error for handling in the catch block
+                throw err;
             } else {
                  logger.info(`File "${fileName}" created successfully!`);
             }
@@ -136,7 +141,7 @@ async function downloadFileAndJson(file, client) {
             .catch((error) => {
                 console.error("Error downloading file:", error);
                 // Handle file download failure (e.g., notify user, retry, etc.)
-                throw error; // Re-throw to prevent JSON download attempt
+                throw error;
             });
 
         // Download its JSON
@@ -155,12 +160,14 @@ async function downloadFileAndJson(file, client) {
     }
 }
 
-async function uploadFiles(file, client, destination) {
+async function uploadFiles(fileName, client, destination) {
     try {
-        await client.ensureDir(destination)
-        await client.uploadFrom(__dirname + '/../public/pdf/' + file.name, destination)
-            .then(() => logger.info(`${file.name} successfully added to archive folder`))
-            .catch(e => logger.error(`Error adding ${file.name} to archive on remote ===> ${e}`));
+        await client.ensureDir(destination);
+
+        await client.uploadFrom(__dirname + '/../public/pdf/' + fileName, destination)
+            .then(() => logger.info(`${fileName} successfully added to output folder`))
+            .catch(e => logger.error(`Error adding ${fileName} to archive on remote ===> ${e}`));
+
     } catch (e) {
         console.error(`An error occurred: ${e}`);
     }
@@ -197,6 +204,7 @@ async function readOrCreateFile(filePath) {
         return await fs.promises.readFile(filePath, 'utf8');
     } catch (error) {
         if (error.code === 'ENOENT') {
+            logger.info(`File not found. Creating it at ${filePath}`);
             await fs.promises.writeFile(filePath, '', 'utf8');
             return '';
         } else {
@@ -205,11 +213,6 @@ async function readOrCreateFile(filePath) {
     }
 }
 
-async function checkFileExists(filePath) {
-    await fs.stat(filePath, function (err, stat) {
-        return err == null;
-    })
-}
 
 
 /**
@@ -240,3 +243,4 @@ const getJsonInfo = (jsonObject) => {
     return integrationData;
 }
 
+scanDir().then(() => console.log("done scanning")).catch(e => console.error(e));
