@@ -20,7 +20,11 @@ const svgHeart = fs.readFileSync(path.join(__dirname, '../public/assets/merci-he
  */
 exports.replaceTextContent = async (jsonData, file) => {
     let { titleText } = jsonData;
-    const { size, guid, productNumber, orderNumber } = jsonData;
+    const { size, guid, productNumber, orderNumber, quantity } = jsonData;
+
+    if (!quantity || !productNumber || !orderNumber) {
+        throw new Error("Missing required properties: quantity, productNumber or orderNumber missing");
+    }
 
     if (titleText === "") {
         titleText = "merci"
@@ -99,7 +103,14 @@ exports.replaceTextContent = async (jsonData, file) => {
         await generatePdfWithBarcode({productNumber, orderNumber}, pdfDoc);
 
         const mod = await pdfDoc.save();
-        fs.writeFileSync(__dirname + titleText + file, mod);
+        const fixedFiles = [];
+
+        for (let i=0; i <= quantity; i++) {
+            const filePath = `${__dirname}/public/pdf/${orderNumber}_${guid}-${i}`
+            fs.writeFileSync(filePath, mod);
+            fixedFiles.push(filePath);
+        }
+        return fixedFiles
     } catch (e) {
         logger.error(`Error adding title text to pdf file ${orderNumber}-${guid} : ${e}`);
     }
