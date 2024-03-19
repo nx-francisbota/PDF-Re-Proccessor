@@ -1,6 +1,6 @@
-const {Client} = require("basic-ftp")
+const { Client } = require("basic-ftp")
 const fs = require('fs');
-const { logger } = require('../utils/logger');
+const {logger} = require('../utils/logger');
 const { replaceTextContent } = require('../scripts/addMessagesToPDF');
 require('dotenv').config({
     path: '../.env'
@@ -10,25 +10,20 @@ const host = process.env.FTP_HOST;
 const user = process.env.FTP_USER;
 const password = process.env.FTP_PASSWORD;
 const remoteDir = process.env.REMOTE_DIRECTORY
-
-const pathToScanTimeFile =   '/../public/pdf/LASTSCAN';
-
-//create file if not there
-
-if (!checkFileExists(pathToScanTimeFile)) {
-    createFile(__dirname + pathToScanTimeFile, '')
-    logger.info("File Not found")
-}
+const pathToArchiveDir = '/archive'
+const pathToScanTimeFile = '/../public/pdff/LASTSCAN';
+const pathToLocalDir = '/../public/pdf/';
+const pathToCurrentFile = '/../public/pdf/CURRENT';
 
 
-exports.index = function () {
-    logger.info(`Host: ${process.env.FTP_HOST} `);
-}
-
-
-
-const scanDir = async function () {
+exports.scanDir = async function () {
     const client = new Client();
+
+    if (!await checkFileExists(pathToScanTimeFile)) {
+         logger.info(`File Not there - ${pathToArchiveDir}`)
+        createFile(__dirname + pathToScanTimeFile, '')
+    }
+
     let lastScanTime = await readOrCreateFile(__dirname + pathToScanTimeFile);
 
     logger.info(`Last scan time: ${lastScanTime}`)
@@ -37,7 +32,9 @@ const scanDir = async function () {
             host, user: user, password,
         });
 
-        console.log('Connected to FTP server');
+        logger.info('Connected to FTP server');
+        await client.ensureDir(pathToArchiveDir)
+
 
         const scannedDate = new Date();
         const files = await client.list(remoteDir);
@@ -52,13 +49,15 @@ const scanDir = async function () {
         });
 
         if (newlyAdded.length > 0) {
-            console.log(`${newlyAdded.length} New PDFs found:`);
+             logger.info(`${newlyAdded.length} New PDFs found:`);
             for (const file of newlyAdded) {
 
                 await downloadFileAndJson(file, client)
 
                 //get json content
-                const json = await readJsonFile(__dirname + '/../public/pdf/' + getPdfJson(file.name))
+
+                const json = await readJsonFile(__dirname + pathToLocalDir + getPdfJson(file.name))
+
 
                 //log content
                 logger.info(json['size'])
@@ -67,16 +66,17 @@ const scanDir = async function () {
                 const jsonData = getJsonInfo(json);
 
                 //create the Current file and save the filename in it
-                createFile(__dirname + '/../public/pdf/CURRENT', file.name)
+
+                createFile(__dirname + pathToCurrentFile, file.name)
 
 
                 //perform action on temp file
-                const currentFilePath = __dirname + '/../public/pdf/' + file.name;
+                const currentFilePath = __dirname + pathToLocalDir + file.name;
 
 
                 //delete current file
                 await deleteFile(__dirname + '/../public/CURRENT');
-                
+
                 //upload to archive folder on ftp and delete
                 await uploadFiles(file, client, '/archive')
 
@@ -85,7 +85,7 @@ const scanDir = async function () {
                 await deleteFile(__dirname + '/../public/pdf/' + getPdfJson(file.name));
             }
         } else {
-            console.log('No new PDFs found.');
+             logger.info('No new PDFs found.');
         }
 
         // Update last scan time for future comparisons
@@ -109,7 +109,7 @@ function createFile(fileName, content) {
             if (err) {
                 throw err; // Re-throw the error for handling in the catch block
             } else {
-                console.log(`File "${fileName}" created successfully!`);
+                 logger.info(`File "${fileName}" created successfully!`);
             }
         });
     } catch (error) {
@@ -121,7 +121,7 @@ function createFile(fileName, content) {
 async function deleteFile(fileName) {
     try {
         await fs.unlink(fileName, () => {
-            console.log(`File "${fileName}" deleted successfully!`);
+             logger.info(`File "${fileName}" deleted successfully!`);
         });
     } catch (err) {
         console.error('Error deleting file:', err);
@@ -131,7 +131,8 @@ async function deleteFile(fileName) {
 async function downloadFileAndJson(file, client) {
     try {
         // Download the file
-        await client.downloadTo(__dirname + '/../public/pdf/' + file.name, file.name)
+        await client.downloadTo(__dirname + pathToLocalDir + file.name, file.name)
+
             .catch((error) => {
                 console.error("Error downloading file:", error);
                 // Handle file download failure (e.g., notify user, retry, etc.)
@@ -139,13 +140,15 @@ async function downloadFileAndJson(file, client) {
             });
 
         // Download its JSON
-        await client.downloadTo(__dirname + '/../public/pdf/' + getPdfJson(file.name), getPdfJson(file.name))
+
+        await client.downloadTo(__dirname + pathToLocalDir + getPdfJson(file.name), getPdfJson(file.name))
+
             .catch((error) => {
                 logger.error("Error downloading JSON:", error);
                 // Handle JSON download failure (e.g., log error, retry, etc.)
             });
 
-        console.log("File and JSON downloaded successfully!");
+         logger.info("File and JSON downloaded successfully!");
     } catch (error) {
         logger.error("An error occurred:", error);
         // Handle general errors (e.g., log error, notify user, etc.)
@@ -203,16 +206,9 @@ async function readOrCreateFile(filePath) {
 }
 
 async function checkFileExists(filePath) {
-    try {
-        await fs.access(filePath, function () {
-            console.log("Files Created")
-            return true;
-        });
-
-    } catch (error) {
-        console.log("Files Not Found")
-        return false;
-    }
+    await fs.stat(filePath, function (err, stat) {
+        return err == null;
+    })
 }
 
 
@@ -244,5 +240,3 @@ const getJsonInfo = (jsonObject) => {
     return integrationData;
 }
 
-
-scanDir().catch(e => console.error(e));
