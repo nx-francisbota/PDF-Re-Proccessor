@@ -31,7 +31,8 @@ exports.replaceTextContent = async (jsonData, file) => {
     }
 
     const textInformation = countAndFindLastI(titleText);
-    const pdfBuffer = fs.readFileSync(path.join(__dirname, file));
+    const pdfPath = path.resolve(__dirname, file);
+    const pdfBuffer = fs.readFileSync(pdfPath);
 
     try {
         const pdfDoc = await PDFDocument.load(pdfBuffer);
@@ -105,8 +106,8 @@ exports.replaceTextContent = async (jsonData, file) => {
         const mod = await pdfDoc.save();
         const fixedFiles = [];
 
-        for (let i=0; i <= quantity; i++) {
-            const filePath = `${__dirname}/public/pdf/${orderNumber}_${guid}-${i}`
+        for (let i=1; i <= quantity; i++) {
+            const filePath = `${__dirname}/../public/pdf/${orderNumber}_${guid}-${i}.pdf`
             fs.writeFileSync(filePath, mod);
             fixedFiles.push(filePath);
         }
