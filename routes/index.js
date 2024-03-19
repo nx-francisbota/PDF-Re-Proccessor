@@ -9,9 +9,8 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/ftp', function(req, res, next) {
-  ftpconnector.index();
-  ftpconnector.scanDir();
-  res.json({})
+  ftpconnector.scanDir().then(r =>res.json({}) );
+
 });
 
 module.exports = router;
