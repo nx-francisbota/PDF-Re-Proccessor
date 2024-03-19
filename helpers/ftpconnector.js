@@ -28,7 +28,6 @@ exports.index = function () {
 
 
 const scanDir = async function () {
-    const black = process.env
     const client = new Client();
     let lastScanTime = await readOrCreateFile(__dirname + pathToScanTimeFile);
 
@@ -72,17 +71,18 @@ const scanDir = async function () {
 
 
                 //perform action on temp file
-                const currentFilePath = __dirname + '/../public/' + file.name;
+                const currentFilePath = __dirname + '/../public/pdf/' + file.name;
 
 
                 //delete current file
                 await deleteFile(__dirname + '/../public/CURRENT');
                 
                 //upload to archive folder on ftp and delete
-                await uploadToArchive(file, client)
+                await uploadFiles(file, client, '/archive')
 
-                //remove from local
+                //remove pdf and json files from local
                 await deleteFile(__dirname + '/../public/pdf/' + file.name);
+                await deleteFile(__dirname + '/../public/pdf/' + getPdfJson(file.name));
             }
         } else {
             console.log('No new PDFs found.');
@@ -141,24 +141,25 @@ async function downloadFileAndJson(file, client) {
         // Download its JSON
         await client.downloadTo(__dirname + '/../public/pdf/' + getPdfJson(file.name), getPdfJson(file.name))
             .catch((error) => {
-                console.error("Error downloading JSON:", error);
+                logger.error("Error downloading JSON:", error);
                 // Handle JSON download failure (e.g., log error, retry, etc.)
             });
 
         console.log("File and JSON downloaded successfully!");
     } catch (error) {
-        console.error("An error occurred:", error);
+        logger.error("An error occurred:", error);
         // Handle general errors (e.g., log error, notify user, etc.)
     }
 }
 
-async function uploadToArchive(file, client) {
+async function uploadFiles(file, client, destination) {
     try {
-        await client.upload(__dirname + '/../public/pdf/' + file.name, '/archive')
+        await client.ensureDir(destination)
+        await client.uploadFrom(__dirname + '/../public/pdf/' + file.name, destination)
             .then(() => logger.info(`${file.name} successfully added to archive folder`))
-            .catch(e => logger.error(`Error adding ${file.name} to archives on remote ===> ${e}`));
+            .catch(e => logger.error(`Error adding ${file.name} to archive on remote ===> ${e}`));
     } catch (e) {
-        logger.error(`An error occurred: ${e}`);
+        console.error(`An error occurred: ${e}`);
     }
 }
 
