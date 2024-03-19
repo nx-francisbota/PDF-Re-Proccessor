@@ -23,7 +23,7 @@ exports.replaceTextContent = async (jsonData, file) => {
     const { size, guid, productNumber, orderNumber, quantity } = jsonData;
 
     if (!quantity || !productNumber || !orderNumber) {
-        throw new Error("Missing required properties: quantity, productNumber or orderNumber missing");
+        return;
     }
 
     if (titleText === "") {
