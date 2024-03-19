@@ -1,8 +1,20 @@
 const pino = require('pino');
-const stream = pino.destination({
-    dest: `${__dirname}/../logs/app.log`,
+const transport = pino.transport({
+    targets:[
+        {
+        level: 'error',
+        target: 'pino-pretty'
+        },
+        {
+        level: 'info',
+        target: 'pino/file',
+        options: {
+            destination: `${__dirname}/../logs/app.log`
+        }
+    }]
 })
 
-exports.logger = pino(stream);
+exports.logger = pino(transport);
+
 
 

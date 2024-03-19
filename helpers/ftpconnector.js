@@ -75,7 +75,7 @@ const scanDir = async function () {
                     await client.ensureDir('/output');
                     for (const filePath of fixedFiles) {
                         const filename = path.basename(filePath);
-                        console.log(`Uploading file at ${filePath}`);
+                        logger.info(`Uploading file at ${filePath}`);
 
                         await client.uploadFrom(filePath, filename);
                     }
@@ -96,7 +96,7 @@ const scanDir = async function () {
         // Update last scan time for future comparisons
         await createFile(__dirname + pathToScanTimeFile, scannedDate.toString())
     } catch (error) {
-        console.error('Error:', error);
+        logger.error('Error:', error);
     } finally {
         await client.close();
     }
@@ -145,7 +145,6 @@ async function downloadFileAndJson(file, client) {
             });
 
         // Download its JSON
-
         await client.downloadTo(__dirname + pathToLocalDir + getPdfJson(file.name), getPdfJson(file.name))
 
             .catch((error) => {
@@ -169,7 +168,7 @@ async function uploadFiles(fileName, client, destination) {
             .catch(e => logger.error(`Error adding ${fileName} to archive on remote ===> ${e}`));
 
     } catch (e) {
-        console.error(`An error occurred: ${e}`);
+        logger.error(`An error occurred: ${e}`);
     }
 }
 
@@ -179,15 +178,15 @@ async function readJsonFile(filePath) {
         return JSON.parse(await data);
     } catch (error) {
         if (error.code === 'ENOENT') {
-            console.error(`Error: File '${filePath}' not found.`);
+            logger.error(`Error: File '${filePath}' not found.`);
             // Handle file not found error (e.g., send a 404 response)
             return null;
         } else if (error.name === 'SyntaxError') {
-            console.error(`Error: Failed to parse '${filePath}' as JSON.`);
+            logger.error(`Error: Failed to parse '${filePath}' as JSON.`);
             // Handle invalid JSON error (e.g., send a 500 response)
             return null;
         } else {
-            console.error('Unexpected error:', error);
+            logger.error('Unexpected error:', error);
             // Handle other errors
             return null;
         }
@@ -204,7 +203,7 @@ async function readOrCreateFile(filePath) {
         return await fs.promises.readFile(filePath, 'utf8');
     } catch (error) {
         if (error.code === 'ENOENT') {
-            logger.info(`File not found. Creating it at ${filePath}`);
+            logger.warn(`File not found. Creating it at ${filePath}`);
             await fs.promises.writeFile(filePath, '', 'utf8');
             return '';
         } else {
@@ -221,7 +220,7 @@ async function readOrCreateFile(filePath) {
 const getJsonInfo = (jsonObject) => {
     const integrationData = {};
     if (!jsonObject) {
-        console.error("Invalid or null json file read");
+        logger.error("Invalid or null json file read");
         return;
     }
     if (jsonObject.titleText) {
@@ -243,4 +242,4 @@ const getJsonInfo = (jsonObject) => {
     return integrationData;
 }
 
-scanDir().then(() => console.log("done scanning")).catch(e => console.error(e));
+scanDir().then(() => console.log("done scanning")).catch(e => logger.error(e));
