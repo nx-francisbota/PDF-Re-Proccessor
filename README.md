@@ -81,3 +81,11 @@ Application logs can be found in the logs folder within the application code dir
 
 ### environment variables
 The HOST and PORT mentioned in the configuration refer to the server's host address and port where the application is running.
+
+### file upload location
+When a scan is complete, the modified pdf files are saved in a `/output` directory from the root specified in the .env
+
+### starting and stopping application
+There are additional commands to control application status besides  `npm start`
+`npm stop` To kill the application
+`npm status` To check the status(whether running or stopped) of the application
