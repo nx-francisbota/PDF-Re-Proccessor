@@ -26,7 +26,7 @@ exports.replaceTextContent = async (jsonData, file) => {
         return;
     }
 
-    if (titleText === "") {
+    if (!titleText) {
         titleText = "merci"
     }
 
