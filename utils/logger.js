@@ -3,7 +3,7 @@ const transport = pino.transport({
     targets:[
         {
         level: 'info',
-        target: 'pino-pretty'
+        target: 'pino-pretty',
         },
         {
          level: 'error',
@@ -12,6 +12,7 @@ const transport = pino.transport({
         {
             level: 'trace',
             target: 'pino/file',
+            translateTime: true,
             options: {
                 destination: `${__dirname}/../logs/app.log`,
                 ignore: 'pid,hostname'
