@@ -17,7 +17,10 @@ SERVER_URL="$SERVER_HOST:$SERVER_PORT/ftp"
 echo "Server URL: $SERVER_URL"
 
 # Make a GET request to the /ftp route to trigger the process
-curl -X GET "$SERVER_URL"
+response=$(curl -X GET "$SERVER_URL")
+
+# Echo the captured response
+echo "Server Response: $response"
 
 # Log the execution time
 START_TIME=$(date +%s)
