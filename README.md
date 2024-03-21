@@ -65,7 +65,7 @@ There is a shell script (e.g., run_ftp_endpoint.sh) in the application directory
 `chmod +x run_ftp_endpoint.sh`
 
 
-### Schedule the CRON Job:
+## Schedule the CRON Job:
 
 Edit the system's crontab using crontab -e.
 Add a new line specifying the schedule and script to run. Here's an example to run the script every minute:
@@ -73,3 +73,11 @@ Add a new line specifying the schedule and script to run. Here's an example to r
 `* * * * * /path_to/PDF-Re-Processor/run_ftp_endpoint.sh`
 Adjust the schedule (* * * * *) according to your desired frequency (e.g., 0 0 * * * for daily at midnight).
 Save and exit the crontab editor.
+
+## Additional Notes
+
+### Logs
+Application logs can be found in the logs folder within the application code directory.
+
+### environment variables
+The HOST and PORT mentioned in the configuration refer to the server's host address and port where the application is running.
