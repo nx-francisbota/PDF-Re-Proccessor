@@ -17,12 +17,10 @@ const pathToLocalDir = '/../public/pdf/';
 const pathToCurrentFile = '/../public/pdf/CURRENT';
 
 
-const scanDir = async function () {
+exports.scanDir = async function () {
     const client = new Client();
-
     let lastScanTime = await readOrCreateFile(__dirname + pathToScanTimeFile)
 
-    logger.info(`Last scan time: ${lastScanTime}`)
     try {
         await client.access({
             host, user: user, password,
@@ -49,12 +47,8 @@ const scanDir = async function () {
                 await downloadFileAndJson(file, client)
 
                 //get json content
-
                 const json = await readJsonFile(__dirname + pathToLocalDir + getPdfJson(file.name))
 
-
-                //log content
-                logger.info(json['size'])
 
                 //load file content in object
                 const jsonData = getJsonInfo(json);
@@ -95,8 +89,10 @@ const scanDir = async function () {
         }
         // Update last scan time for future comparisons
         await createFile(__dirname + pathToScanTimeFile, scannedDate.toString())
+        logger.info("Scan Successfully completed");
     } catch (error) {
-        logger.error('Error:', error);
+        logger.error("FTP Server Scan Failed. Check configuration or file information missing");
+        logger.trace(error)
     } finally {
         await client.close();
     }
@@ -241,5 +237,3 @@ const getJsonInfo = (jsonObject) => {
     }
     return integrationData;
 }
-
-scanDir().then(() => console.log("done scanning")).catch(e => logger.error(e));
