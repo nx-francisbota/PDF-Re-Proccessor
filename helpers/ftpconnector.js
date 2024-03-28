@@ -11,7 +11,7 @@ const host = process.env.FTP_HOST;
 const user = process.env.FTP_USER;
 const password = process.env.FTP_PASSWORD;
 const remoteDir = process.env.REMOTE_DIRECTORY
-const pathToArchiveDir = '/archive'
+const printOutput = process.env.REMOTE_OUTPUT
 const pathToScanTimeFile = '/../public/pdf/LASTSCAN';
 const pathToLocalDir = '/../public/pdf/';
 const pathToCurrentFile = '/../public/pdf/CURRENT';
@@ -36,8 +36,11 @@ exports.scanDir = async function () {
 
         // Identify new PDFs by comparing modification times with last scan
         const newlyAdded = pdfFiles.filter((file) => {
-            const fileModifiedTime = new Date(file.modifiedAt);
-            return lastScanTime === "" || fileModifiedTime > lastScanTime;
+            const fileModifiedDate = new Date(file.modifiedAt);
+            if(lastScanTime === "") {
+                return true;
+            }
+            return fileModifiedDate > lastScanTime;
         });
 
         if (newlyAdded.length > 0) {
@@ -66,7 +69,7 @@ exports.scanDir = async function () {
                 }
 
                 if (fixedFiles.length > 0) {
-                    await client.ensureDir('/output');
+                    await client.ensureDir(printOutput);
                     for (const filePath of fixedFiles) {
                         const filename = path.basename(filePath);
                         logger.info(`Uploading file at ${filePath}`);
@@ -78,7 +81,7 @@ exports.scanDir = async function () {
                 }
 
                 //delete current file
-                await deleteFile(__dirname + '/../public/CURRENT');
+                await deleteFile(__dirname + pathToCurrentFile);
 
                 //remove pdf and json files from local
                 await deleteFile(__dirname + '/../public/pdf/' + file.name);
@@ -104,6 +107,7 @@ function getPdfJson(fileName) {
     return name + '.json'
 }
 
+
 function createFile(fileName, content) {
     try {
         fs.writeFile(fileName, content, (err) => {
@@ -115,9 +119,9 @@ function createFile(fileName, content) {
         });
     } catch (error) {
         console.error('Error creating file:', error);
-        // Handle other errors here (e.g., logging to a file, notifying the user)
     }
 }
+
 
 async function deleteFile(fileName) {
     try {
@@ -129,9 +133,12 @@ async function deleteFile(fileName) {
     }
 }
 
+
 async function downloadFileAndJson(file, client) {
     try {
+        await client.cd(remoteDir)
         // Download the file
+        logger.info(`Start downloading PDF file: ${file.name}`);
         await client.downloadTo(__dirname + pathToLocalDir + file.name, file.name)
 
             .catch((error) => {
@@ -141,6 +148,7 @@ async function downloadFileAndJson(file, client) {
             });
 
         // Download its JSON
+        logger.info(`Start downloading JSON file: ${getPdfJson(file.name)}`);
         await client.downloadTo(__dirname + pathToLocalDir + getPdfJson(file.name), getPdfJson(file.name))
 
             .catch((error) => {
@@ -148,25 +156,13 @@ async function downloadFileAndJson(file, client) {
                 // Handle JSON download failure (e.g., log error, retry, etc.)
             });
 
-         logger.info("File and JSON downloaded successfully!");
+        logger.info("File and JSON downloaded successfully!");
     } catch (error) {
         logger.error("An error occurred:", error);
         // Handle general errors (e.g., log error, notify user, etc.)
     }
 }
 
-async function uploadFiles(fileName, client, destination) {
-    try {
-        await client.ensureDir(destination);
-
-        await client.uploadFrom(__dirname + '/../public/pdf/' + fileName, destination)
-            .then(() => logger.info(`${fileName} successfully added to output folder`))
-            .catch(e => logger.error(`Error adding ${fileName} to archive on remote ===> ${e}`));
-
-    } catch (e) {
-        logger.error(`An error occurred: ${e}`);
-    }
-}
 
 async function readJsonFile(filePath) {
     try {
@@ -207,7 +203,6 @@ async function readOrCreateFile(filePath) {
         }
     }
 }
-
 
 
 /**
